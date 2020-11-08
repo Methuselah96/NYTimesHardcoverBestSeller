@@ -22,6 +22,7 @@ namespace NYTimesHardcoverBestSellers
     {
         public int Points { get; set; }
         public int Count { get; set; }
+        public DateTime Last { get; set; }
     }
 
     class Program
@@ -29,7 +30,7 @@ namespace NYTimesHardcoverBestSellers
         private static readonly DateTime FirstDateTime = new DateTime(1931, 10, 12);
         private static readonly HttpClient Client = new HttpClient();
         private static readonly Dictionary<string, Info> Info = new Dictionary<string, Info>();
-        private const int MaxPoints = 15;
+        private const int MaxPoints = 16;
 
         private static readonly List<DateTime> SkipDates = new List<DateTime>
         {
@@ -82,7 +83,7 @@ namespace NYTimesHardcoverBestSellers
             }
 
             Dictionary<string, int> lastWeek = null;
-            foreach (var dateTime in dateTimes.Where(dateTime => dateTime <= new DateTime(1949, 12, 25)))
+            foreach (var dateTime in dateTimes.Where(dateTime => dateTime < new DateTime(1960, 1, 1)))
             {
                 if (SkipDates.Contains(dateTime))
                 {
@@ -94,7 +95,7 @@ namespace NYTimesHardcoverBestSellers
                 ProcessAndValidateBestSellerList(result.FictionList, lastWeek, newLastWeek, dateTime);
                 ProcessAndValidateBestSellerList(result.NonFictionList, lastWeek, newLastWeek, dateTime);
                 lastWeek = newLastWeek;
-                Console.WriteLine(dateTime);
+                // Console.WriteLine(dateTime);
             }
 
             var stringBuilder = new StringBuilder();
@@ -149,11 +150,47 @@ namespace NYTimesHardcoverBestSellers
             (new DateTime(1937, 4, 26), "GONE WITH THE WIND, by Margaret Mitchell."),
             (new DateTime(1938, 7, 18), "THE DARK RIVER, by Charles Nordloff and James Norman Hall."),
             (new DateTime(1938, 9, 12), "THE DARK RIVER, by Charles Nordloff and James Norman Hall."),
+            (new DateTime(1940, 1, 15), "LIFE OF GREECE, by Will Durant."),
+            (new DateTime(1944, 8, 6), "LEAVE HER TO HEAVEN, by Ben Ames Williams."),
+            (new DateTime(1944, 8, 6), "PRESIDENTIAL AGENT, by Upton Sinclair."),
+            (new DateTime(1945, 10, 28), "THE WHITE TOWER, by James Ramsey Ullman."),
+            (new DateTime(1945, 10, 28), "SO WELL REMEMBERED, by James Hilton."),
+            (new DateTime(1945, 11, 11), "SO WELL REMEMBERED, by James Hilton."),
+            (new DateTime(1945, 11, 11), "THE PEACOCK SHEDS HIS TAIL, by Alice Tisdale Hobart."),
+            (new DateTime(1945, 11, 18), "CAPTAIN FROM CASTILLE, by Samuel Shellaburger."),
+            (new DateTime(1945, 11, 18), "FOREVER AMBER, by Kathleen Winsor."),
+            (new DateTime(1946, 3, 3), "YOUR INCOME TAX, by J. K. Lasser."),
+            (new DateTime(1946, 3, 31), "LOVELY IS THE LEE, by Robert Gibbings."),
+            (new DateTime(1946, 4, 21), "THE CIANO DIARIES, by Galeazzo Ciano."),
+            (new DateTime(1946, 4, 21), "ON THE EDGE OF EVENING, by Cornelius Weygandt."),
+            (new DateTime(1946, 8, 18), "THE SCARLET TREE, by Osbert Sitwell."),
+            (new DateTime(1947, 7, 13), "THE SLING AND THE ARROW, by Stuart David Engstrand."),
+            (new DateTime(1949, 1, 30), "THE ROOSEVELT MYTH, by John T. Flynn."),
+            (new DateTime(1950, 1, 29), "THE BIG FISHERMAN, by Lloyd C. Douglas."),
         };
 
         public static readonly List<(DateTime, string)> FirstWeeksOnList = new List<(DateTime, string)>
         {
             (new DateTime(1938, 9, 5), "DESIGNING WOMEN, by Margarette Byers with Consuelo Kamholz."),
+            (new DateTime(1950, 1, 22), "ROOSEVELT AND THE RUSSIANS, by Edward R. Stettinius Jr."),
+        };
+
+        public static readonly List<(DateTime, string)> MultiWeeksOnList = new List<(DateTime, string)>
+        {
+            (new DateTime(1940, 2, 19), "INSIDE EUROPE, by John Gunther."),
+            (new DateTime(1940, 2, 26), "YOUR INCOME TAX, by J. K. Lasser."),
+            (new DateTime(1940, 7, 22), "MEIN KAMPF, by Adolph Hitler."),
+            (new DateTime(1946, 1, 27), "YOUR INCOME TAX, by J. K. Lasser."),
+            (new DateTime(1947, 11, 2), "PETTICOAT SURGEON, by Bertha Van Hoosen."),
+            (new DateTime(1947, 11, 9), "PETTICOAT SURGEON, by Bertha Van Hoosen."),
+            (new DateTime(1948, 2, 22), "THREE CAME HOME, by Agnes Newton Keith."),
+            (new DateTime(1950, 1, 1), "THE SEVEN STOREY MOUNTAIN, by Thomas Merton."),
+            (new DateTime(1950, 1, 8), "FATHER OF THE BRIDE, by Edward Streeter."),
+            (new DateTime(1950, 2, 5), "THE ROAD AHEAD, by John T. Flynn."),
+            (new DateTime(1950, 3, 12), "A RAGE TO LIVE, by John O'Hara."),
+            (new DateTime(1950, 3, 12), "MY THREE YEARS IN MOSCOW, by Walter Bedell Smith."),
+            (new DateTime(1950, 3, 19), "A RAGE TO LIVE, by John O'Hara."),
+            (new DateTime(1950, 3, 19), "MY THREE YEARS IN MOSCOW, by Walter Bedell Smith."),
         };
 
         public static void ProcessAndValidateBestSellerList(BestSellerList result, Dictionary<string, int> lastWeek,
@@ -192,11 +229,20 @@ namespace NYTimesHardcoverBestSellers
 
                     if (oldInfo.Count + 1 != entry.WeeksOnList)
                     {
-                        throw new Exception("Weeks on list is incorrect.");
+                        if (!MultiWeeksOnList.Contains((dateTime, entry.Title)))
+                        {
+                            throw new Exception("Weeks on list is incorrect.");
+                        }
+
+                        Console.WriteLine(entry.Title);
+                        Console.WriteLine(oldInfo.Last);
+                        Console.WriteLine(dateTime);
+                        Console.WriteLine();
                     }
 
-                    oldInfo.Count += 1;
+                    oldInfo.Count = entry.WeeksOnList;
                     oldInfo.Points += points;
+                    oldInfo.Last = dateTime;
                 }
                 else
                 {
@@ -208,7 +254,8 @@ namespace NYTimesHardcoverBestSellers
                     Info[aliasTitle] = new Info
                     {
                         Count = entry.WeeksOnList,
-                        Points = points
+                        Points = points,
+                        Last = dateTime,
                     };
                 }
             }
@@ -236,6 +283,68 @@ Week Fiction Week On List
 7 THIS PROUD HEART, by Pearl S. Buck. (Reynal & Hitchcock.) 5 8 
     
 8 THE RAINS CAME, by Louis Bromfield. (Harper.) 7 25 
+ 
+Hawes Publications  www.hawes.com "},
+
+            {(new DateTime(1943, 5, 17), 2), @" 
+Uif!Ofx!Zpsl!Ujnft!Cftu!Tfmmfs!Mjtu!
+This May 17, 1943 Last Weeks 
+Week Non-Fiction Week On List 
+    
+1 ONE WORLD, by Wendell L. Willkie. (Simon & Schuster.) 1 5 
+    
+BETWEEN THE THUNDER AND THE SUN, by Vincent Sheean. (Random 
+2 2 7 
+House.) 
+    
+3 ON BEING A REAL PERSON, by Harry Emerson Fosdick. (Harper.) 3 9 
+    
+4 JOURNEY AMONG WARRIORS, by Eve Curie. (Doubleday, Doran.) -- 1 
+    
+5 GEORGE WASHINGTON CARVER, by Rackham Holt. (Doubleday, Doran.) 5 3 
+ 
+Hawes Publications  www.hawes.com "},
+
+            {(new DateTime(1946, 12, 29), 2), @" 
+Uif!Ofx!Zpsl!Ujnft!Cftu!Tfmmfs!Mjtu!
+This December 29, 1946 Last Weeks 
+Week Non-Fiction Week On List 
+    
+1 PEACE OF MIND, by Joshua Loth Liebman. (Simon & Schuster.) 1 38 
+    
+2 THE EGG AND I, by Betty MacDonald. (Lippincott.) 2 62 
+    
+3 THE PLOTTERS, by John Roy Carlson. (Dutton.) 3 4 
+    
+4 THE ROOSEVELT I KNEW, by Frances Perkins. (Viking.) 4 6 
+    
+5 AS HE SAW IT, by Elliott Roosevelt. (Duell, Sloan & Pearce.) 5 11 
+    
+6 NOT SO WILD A DREAM, by Eric Sevareid. (Knopf.) 7 9 
+    
+7 BALZAC, by Stephan Zweig. (Viking.) 8 2 
+    
+8 HAPPY THE LAND, by Louise Dickinson Rich. (Lippincott.) 12 3 
+    
+9 DAHL'S BOSTON, by Francis W. Dahl and Charles W. Morton. (Little, Brown.) -- 2 
+    
+10 SO THIS IS PEACE, by Bob Hope. (Simon & Schuster.) 6 7 
+    
+THE LOWELLS AND THEIR SEVEN WORLDS, by Ferris Greenslet. (Houghton 
+11 -- 10 
+Mifflin.) 
+    
+THUNDER OUT OF CHINA, by Theodore H. White and Annalee Jacoby. 
+12 9 6 
+(Sloane.) 
+    
+13 THE HAPPY PROFESSION, by Ellery Sedgwick. (Little, Brown.) 11 10 
+    
+14 HIROSHIMA, by John Hershey. (Knopf.) 13 5 
+    
+15 I CHOSE FREEDOM, by Victor A. Kravchenko. (Scribner.) 16 33 
+    
+16 WHERE ARE WE HEADING? by Sumner Welles. (Harper.) -- 8 
  
 Hawes Publications  www.hawes.com "}
         };
